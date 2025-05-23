@@ -63,32 +63,31 @@ var userPreferenceAdditionalPaddingPX = "0"; // Optional additional padding on t
 
     // Bulk CSS removal for distractions
     insertCSS(`
-        .youll-also-like,                                /* "Youâ€™ll also like" section */
-        .recommendations,                                /* Recommended stories */
-        .story-extras,                                   /* Extras like comments, stats etc. */
-        p:nth-of-type(1),                                /* First paragraph (often empty) */
-        .new-stats__comments,                            /* New comment stats */
-        .inline-recommendations,                         /* Inline story recs */
-        .story-info__social,                             /* Share/social buttons */
-        .paid-story-label,                               /* Label for paid stories */
-        .site-footer,                                    /* Footer */
-        .login-modal,                                    /* Login modal popup */
-        .overlay,                                        /* Generic overlay */
-        .recommendations-sidebar,                        /* Sidebar recommendations */
-        .bottom-nav,                                     /* Bottom navigation bar */
-        .right-sidebar,                                  /* Right sidebar content */
-        .left-rail,                                      /* Left rail/sidebar */
-        .right-rail,                                     /* Right rail/sidebar */
-        .story__profile,                                 /* Author's profile box */
-        .vote-button,                                    /* Vote button */
-        #part-footer-actions,                            /* Footer buttons like comment/vote */
-        .comment-marker,                                 /* Inline comment markers */
-        .part-comments,                                  /* Entire comment block */
-        #similar-stories.similar-stories,                /* Similar stories box */
-        .similar-stories-footer,                         /* Footer under similar stories */
-        .hidden-sm.hidden-xs.vertical.share-tools,       /* Floating social buttons */
-        .on-comments.comments,                           /* Comments section */
-        .panel-title                                     /* Redundant panel headers */
+        .youll-also-like,                                /* Removes the -You’ll also like- section */
+        .recommendations,                                /* Removes the recommended stories */
+        .new-stats__comments,                            /* Removes the new comment stats */
+        .story-extras,                                   /* Remove the empty space between the "Follow" button and the header's line. */
+        .inline-recommendations,                         /* Removes the inline story recommendations */
+        .story-info__social,                             /* Removes the share/social buttons */
+        .paid-story-label,                               /* Removes the label for paid stories */
+        .site-footer,                                    /* Removes the site footer */
+        .login-modal,                                    /* Removes the login page. To sign in, disable the userscript first or comment the line using // in front. Once logged in, uncomment the line. */
+        .overlay,                                        /* Removes the generic overlay */
+        .recommendations-sidebar,                        /* Removes the sidebar recommendations */
+        .bottom-nav,                                     /* Removes the bottom navigation bar */
+        .right-sidebar,                                  /* Removes the right sidebar content */
+        .left-rail,                                      /* Removes the left rail/sidebar */
+        .right-rail,                                     /* Removes the right rail/sidebar */
+        .story__profile,                                 /* Removes the author's tiny profile box */
+        .vote-button,                                    /* Removes the vote button */
+        #part-footer-actions,                            /* Removes the footer buttons such as comment/vote */
+        .comment-marker,                                 /* Removes the inline comment markers */
+        .part-comments,                                  /* Removes the entire comment block */
+        #similar-stories.similar-stories,                /* Removes the similar stories box */
+        .similar-stories-footer,                         /* Removes the footer under similar stories */
+        .hidden-sm.hidden-xs.vertical.share-tools,       /* Removes the share menu with floating social tools */
+        .on-comments.comments,                           /* Removes the comments section */
+        .panel-title                                     /* Removes the redundant panel headers */
         {
             display: none !important;
         }
@@ -137,10 +136,9 @@ var userPreferenceAdditionalPaddingPX = "0"; // Optional additional padding on t
 
     // jQuery DOM cleanup when document is ready
     $(document).ready(function () {
-        $("p:nth-of-type(1)").remove(); // Remove first paragraph (often blank)
-        $("story-extras").remove(); // Remove story extra panel
+        $("story-extras").remove(); // Remove the empty space between the "Follow" button and the header's line.
         $("on-comments.comments").remove(); // Remove comment section
-        $("hidden-sm.hidden-xs.vertical.share-tools").remove(); // Floating social tools
+        $("hidden-sm.hidden-xs.vertical.share-tools").remove(); // Remove the share menu with floating social tools
         $("span.comments.on-comments").remove(); // Remove comment icons
         $("button.btn-no-background.comment-marker").remove(); // Remove inline comment buttons
         $("div.row.part-content.part-comments").remove(); // Remove comment block
