@@ -16,40 +16,61 @@
 
 
 /* the Download Wattpad Chapter userscript */
-// @downloadURL https://update.greasyfork.org/scripts/491126/Download%20Wattpad%20Chapter.user.js
-// @updateURL https://update.greasyfork.org/scripts/491126/Download%20Wattpad%20Chapter.meta.js
+
+// @description  Downloaded chapters follow the naming scheme: "Book Title - Chapter Title".
+// @downloadURL  https://update.greasyfork.org/scripts/491126/Download%20Wattpad%20Chapter.user.js
+// @updateURL    https://update.greasyfork.org/scripts/491126/Download%20Wattpad%20Chapter.meta.js
+
 
 (function() {
     'use strict';
 
     // Function to copy the text of an element to the clipboard
     function copyText(text) {
-        // Copy text to clipboard
         navigator.clipboard.writeText(text)
             .catch(function() {
                 alert('Error copying text.');
             });
     }
 
-    // Function to download text as a text file
+    // Function to download text as a text file with dynamic filename
     function downloadFile(text) {
-        // Create a Blob object with the text
-        var blob = new Blob([text], { type: 'text/plain' });
+    // Grab book title and chapter title from the page
+    const bookTitle = document.querySelector('.h5.title')?.innerText.trim() || 'book';
+    const chapterTitle = document.querySelector('.h2')?.innerText.trim() || 'chapter';
 
-        // Create a URL object for the Blob
-        var url = window.URL.createObjectURL(blob);
+    // Function to remove illegal filename characters
+    // Removes characters: \ / : * ? " < > |
+    const omitIllegalChars = (str) => {
+        return str.replace(/[\/\\:\*\?"<>\|]/g, '').trim();
+    };
 
-        // Create a download link
-        var downloadLink = document.createElement('a');
-        downloadLink.href = url;
-        downloadLink.download = 'downloaded_chapter.txt';
+    // Sanitize titles by omitting illegal characters
+    const safeBookTitle = omitIllegalChars(bookTitle);
+    const safeChapterTitle = omitIllegalChars(chapterTitle);
 
-        // Click the link to initiate the download
-        downloadLink.click();
+    // Combine sanitized titles with dash
+    const combinedTitle = `${safeBookTitle} - ${safeChapterTitle}`;
 
-        // Revoke the URL object
-        window.URL.revokeObjectURL(url);
-    }
+    // Create a Blob object with the text
+    const blob = new Blob([text], { type: 'text/plain' });
+
+    // Create a URL object for the Blob
+    const url = window.URL.createObjectURL(blob);
+
+    // Create a download link
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = `${combinedTitle}.txt`;
+
+    // Click the link to initiate the download
+    downloadLink.click();
+
+    // Revoke the URL object
+    window.URL.revokeObjectURL(url);
+}
+
+
 
     // Create a download chapter button
     function createDownloadChapterButton() {
@@ -144,6 +165,7 @@ var userPreferenceAdditionalPaddingPX = "0"; // Optional additional padding on t
         insertCss('.modal-open{overflow:inherit;}'); // Allow scroll when modal is open
     });
 
+
     // Helper to inject full CSS block
     const insertCSS = (css) => {
         const style = document.createElement('style');
@@ -172,11 +194,11 @@ var userPreferenceAdditionalPaddingPX = "0"; // Optional additional padding on t
         .vote-button,                                    /* Removes the vote button */
         #part-footer-actions,                            /* Removes the footer buttons such as comment/vote */
         .comment-marker,                                 /* Removes the inline comment markers */
-        .part-comments,                                  /* Removes the entire comment block */
+     /* .part-comments,   */                             /* Removes the comment section */
         #similar-stories.similar-stories,                /* Removes the similar stories box */
         .similar-stories-footer,                         /* Removes the footer under similar stories */
         .hidden-sm.hidden-xs.vertical.share-tools,       /* Removes the share menu with floating social tools */
-        .on-comments.comments,                           /* Removes the comments section */
+     /* .on-comments.comments,   */                      /* Removes the comment icon under chapter name */
         .panel-title                                     /* Removes the redundant panel headers */
         {
             display: none !important;
@@ -226,15 +248,15 @@ var userPreferenceAdditionalPaddingPX = "0"; // Optional additional padding on t
 
     // jQuery DOM cleanup when document is ready
     $(document).ready(function () {
-        $("story-extras").remove(); // Remove the empty space between the "Follow" button and the header's line.
-        $("on-comments.comments").remove(); // Remove comment section
-        $("hidden-sm.hidden-xs.vertical.share-tools").remove(); // Remove the share menu with floating social tools
-        $("span.comments.on-comments").remove(); // Remove comment icons
-        $("button.btn-no-background.comment-marker").remove(); // Remove inline comment buttons
-        $("div.row.part-content.part-comments").remove(); // Remove comment block
-        $("#similar-stories.similar-stories").remove(); // Remove similar stories box
-        $("div.container.similar-stories-container.similar-stories-footer").remove(); // Remove similar stories footer
-        $("#component-tagpagepaidstoriescontainer-tagpage-paid-stories-%2fstories%2ffantasy").remove(); // Remove paid stories recommendations
+        $("story-extras").remove(); // Removes the empty space between the "Follow" button and the header's line.
+     // $("on-comments.comments").remove(); // Removes the comment icon under chapter name
+        $("hidden-sm.hidden-xs.vertical.share-tools").remove(); // Removes the share menu with floating social tools
+     // $("span.comments.on-comments").remove(); // Removes the comment icon under chapter name
+        $("button.btn-no-background.comment-marker").remove(); // Removes inline comment buttons
+     // $("div.row.part-content.part-comments").remove(); // Removes the comment section
+        $("#similar-stories.similar-stories").remove(); // Removes similar stories box
+        $("div.container.similar-stories-container.similar-stories-footer").remove(); // Removes similar stories footer
+        $("#component-tagpagepaidstoriescontainer-tagpage-paid-stories-%2fstories%2ffantasy").remove(); // Removes paid stories recommendations
     });
 
 })();
