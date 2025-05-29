@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Better Wattpad
+// @name         Better Wattpad+
 // @namespace    https://greasyfork.org/
-// @version      1.6.9
+// @version      1.7.3
 // @description  Clean Wattpad's interface, remove distractions, expand reading area for a smooth, AO3-style experience and allow chapter downloads. Combined the efforts of the "Simplified Wattpad" userscript by @sharkcat, the "Wattpad Width Fixer and Suggestions Hider" userscript by @You, and the "Download Wattpad Chapter" userscript by @Dj Dragkan with additional tweaks.
 // @author       Myst1cX
 // @match        https://www.wattpad.com/*
@@ -15,110 +15,206 @@
 // ==/UserScript==
 
 
-/* the Download Wattpad Chapter userscript */
+/* the Download Wattpad Chapter userscript (modified) */
 
 // @description  Downloaded chapters follow the naming scheme: "Book Title - Chapter Title".
 // @downloadURL  https://update.greasyfork.org/scripts/491126/Download%20Wattpad%20Chapter.user.js
 // @updateURL    https://update.greasyfork.org/scripts/491126/Download%20Wattpad%20Chapter.meta.js
 
 
-(function() {
+(function () {
     'use strict';
 
-    // Function to copy the text of an element to the clipboard
-    function copyText(text) {
-        navigator.clipboard.writeText(text)
-            .catch(function() {
-                alert('Error copying text.');
-            });
+    // Function to create and manage the download progress bar at the top of the screen
+    function createProgressBar() {
+        const progressBar = document.createElement('div');
+        progressBar.id = 'scrollProgressBar';
+        progressBar.style.position = 'fixed';
+        progressBar.style.top = '0';
+        progressBar.style.left = '0';
+        progressBar.style.width = '0%';
+        progressBar.style.height = '5px';
+        progressBar.style.backgroundColor = '#FFA500';
+        progressBar.style.zIndex = '10000';
+        progressBar.style.transition = 'width 0.2s ease';
+        document.body.appendChild(progressBar);
     }
 
-    // Function to download text as a text file with dynamic filename
+    // Updates the width of the progress bar based on percentage
+    function updateProgressBar(percent) {
+        const bar = document.getElementById('scrollProgressBar');
+        if (bar) bar.style.width = `${Math.min(percent, 100)}%`;
+    }
+
+    // Removes the progress bar with a fade-out effect
+    function removeProgressBar() {
+        const bar = document.getElementById('scrollProgressBar');
+        if (bar) {
+            bar.style.transition = 'opacity 0.5s ease';
+            bar.style.opacity = 0;
+            setTimeout(() => bar.remove(), 600); // Remove after fade
+        }
+    }
+
+    // Downloads a text file with the chapter's content
     function downloadFile(text) {
-    // Grab book title and chapter title from the page
-    const bookTitle = document.querySelector('.h5.title')?.innerText.trim() || 'book';
-    const chapterTitle = document.querySelector('.h2')?.innerText.trim() || 'chapter';
+        const bookTitle = document.querySelector('.h5.title')?.innerText.trim() || 'book';
+        const chapterTitle = document.querySelector('.h2')?.innerText.trim() || 'chapter';
 
-    // Function to remove illegal filename characters
-    // Removes characters: \ / : * ? " < > |
-    const omitIllegalChars = (str) => {
-        return str.replace(/[\/\\:\*\?"<>\|]/g, '').trim();
-    };
+        // Remove illegal characters from file names
+        const omitIllegalChars = str => str.replace(/[\/\\:\*\?"<>\|]/g, '').trim();
 
-    // Sanitize titles by omitting illegal characters
-    const safeBookTitle = omitIllegalChars(bookTitle);
-    const safeChapterTitle = omitIllegalChars(chapterTitle);
+        const safeBookTitle = omitIllegalChars(bookTitle);
+        const safeChapterTitle = omitIllegalChars(chapterTitle);
+        const combinedTitle = `${safeBookTitle} - ${safeChapterTitle}`;
 
-    // Combine sanitized titles with dash
-    const combinedTitle = `${safeBookTitle} - ${safeChapterTitle}`;
+        // Create and trigger a download link
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
 
-    // Create a Blob object with the text
-    const blob = new Blob([text], { type: 'text/plain' });
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = `${combinedTitle}.txt`;
+        downloadLink.click();
 
-    // Create a URL object for the Blob
-    const url = window.URL.createObjectURL(blob);
+        // Revoke the object URL to free memory
+        window.URL.revokeObjectURL(url);
+    }
 
-    // Create a download link
-    const downloadLink = document.createElement('a');
-    downloadLink.href = url;
-    downloadLink.download = `${combinedTitle}.txt`;
+    // Function to fetch all pages of the chapter
+    async function fetchAllPages() {
+        createProgressBar(); // Show progress bar
+        const baseUrl = window.location.href.split('/page/')[0];
+        let page = 1;
+        let allText = '';
+        let allParagraphs = [];
 
-    // Click the link to initiate the download
-    downloadLink.click();
+        // Loop through all pages of the chapter
+        while (true) {
+            const url = page === 1 ? baseUrl : `${baseUrl}/page/${page}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) break;
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
 
-    // Revoke the URL object
-    window.URL.revokeObjectURL(url);
+                // Extract paragraphs with a specific data attribute
+                const paragraphs = Array.from(doc.querySelectorAll('p[data-p-id]'));
+
+                if (paragraphs.length === 0) break;
+                allParagraphs = allParagraphs.concat(paragraphs);
+                paragraphs.forEach(p => allText += p.innerText + '\n');
+
+                // Update progress bar based on page count
+                updateProgressBar((page / (page + 2)) * 100); // Slightly more accurate
+                page++;
+            } catch (e) {
+                console.error('Error fetching page:', e);
+                break;
+            }
+        }
+
+        // Finalize progress bar and start download
+        updateProgressBar(100);
+        setTimeout(() => {
+            removeProgressBar();
+            downloadFile(allText);
+        }, 500);
+    }
+
+    // Function to save and restore scroll position
+    function getChapterId() {
+        const book = document.querySelector('.h5.title')?.innerText.trim() || 'book';
+        const chapter = document.querySelector('.h2')?.innerText.trim() || 'chapter';
+        return `bp_scroll_${book}__${chapter}`;
+    }
+
+    // Saves the scroll position in sessionStorage
+    function saveScrollPosition() {
+        const id = getChapterId();
+        sessionStorage.setItem(id, window.scrollY);
+    }
+
+    // Restores scroll position on reload
+    function restoreScrollPosition() {
+        const id = getChapterId();
+        const pos = sessionStorage.getItem(id);
+        if (pos !== null) {
+            setTimeout(() => {
+                window.scrollTo({ top: parseInt(pos, 10), behavior: 'smooth' });
+            }, 400);
+        }
+    }
+
+    // Create the download button
+    function createDownloadChapterButton() {
+    const tryPremiumButton = document.querySelector('.btn-primary.on-premium.try-premium');
+
+    if (tryPremiumButton) {
+        const computedStyles = window.getComputedStyle(tryPremiumButton);
+        const width = computedStyles.width;
+        const height = computedStyles.height;
+
+        const downloadButton = document.createElement('button');
+        downloadButton.innerText = 'DOWNLOAD CHAPTER';
+
+        // Match dimensions
+        downloadButton.style.width = width;
+        downloadButton.style.height = height;
+
+        // Core styles
+        downloadButton.style.backgroundColor = '#FFA500';
+        downloadButton.style.color = 'white';
+        downloadButton.style.fontWeight = 'bold';
+        downloadButton.style.border = 'none';
+        downloadButton.style.borderRadius = computedStyles.borderRadius || '5px';
+        downloadButton.style.cursor = 'pointer';
+        downloadButton.style.boxSizing = 'border-box';
+        downloadButton.style.overflow = 'hidden';
+        downloadButton.style.whiteSpace = 'nowrap';
+        downloadButton.style.marginTop = '6px';
+
+
+        // Flexbox for horizontal alignment
+        downloadButton.style.display = 'flex';
+        downloadButton.style.alignItems = 'center';
+        downloadButton.style.justifyContent = 'center';
+        downloadButton.style.gap = '6px';
+
+        // Smaller font size
+        downloadButton.style.fontSize = '13px';
+        downloadButton.style.padding = computedStyles.padding || '6px 13px';
+
+        const icon = document.createElement('img');
+        icon.src = 'https://www.wattpad.com/apple-touch-icon-114x114-precomposed.png';
+        icon.style.width = '16px';
+        icon.style.height = '16px';
+
+        // Add icon before text
+        downloadButton.textContent = ''; // Clear existing text
+        downloadButton.appendChild(icon);
+        downloadButton.appendChild(document.createTextNode('DOWNLOAD CHAPTER'));
+
+        downloadButton.addEventListener('click', fetchAllPages);
+
+        tryPremiumButton.replaceWith(downloadButton);
+    } else {
+        console.warn('Try Premium button not found.');
+    }
 }
 
 
 
-    // Create a download chapter button
-    function createDownloadChapterButton() {
-        var downloadChapterButton = document.createElement('button');
-        downloadChapterButton.innerText = 'DOWNLOAD CHAPTER';
-        downloadChapterButton.style.position = 'fixed';
-        downloadChapterButton.style.top = '10px';
-        downloadChapterButton.style.left = '50%';
-        downloadChapterButton.style.transform = 'translateX(-50%)';
-        downloadChapterButton.style.zIndex = '9999';
-        downloadChapterButton.style.backgroundColor = '#FFA500';
-        downloadChapterButton.style.color = 'white';
-        downloadChapterButton.style.fontWeight = 'bold';
-        downloadChapterButton.style.border = 'none';
-        downloadChapterButton.style.borderRadius = '5px';
-        downloadChapterButton.style.padding = '10px 20px';
-        downloadChapterButton.style.cursor = 'pointer';
 
-        // Add the Wattpad icon to the button
-        var wattpadIcon = document.createElement('img');
-        wattpadIcon.src = 'https://www.wattpad.com/apple-touch-icon-114x114-precomposed.png';
-        wattpadIcon.style.width = '20px'; // Adjust size as needed
-        wattpadIcon.style.verticalAlign = 'middle'; // Align vertically with text
-        downloadChapterButton.appendChild(wattpadIcon);
+// Call the function after the page has fully loaded
+window.addEventListener('load', () => {
+    createDownloadChapterButton();
+    restoreScrollPosition(); // If you have a function to restore scroll position
+});
 
-        // Add the button to the document body
-        document.body.appendChild(downloadChapterButton);
-
-        // Add click event to the button
-        downloadChapterButton.addEventListener('click', function() {
-            // Get all <p> elements with the data-p-id attribute
-            var elements = document.querySelectorAll('p[data-p-id]');
-            if (elements.length > 0) {
-                var totalText = '';
-                elements.forEach(function(element) {
-                    totalText += element.innerText + '\n';
-                });
-                copyText(totalText);
-                downloadFile(totalText);
-            } else {
-                alert('No <p> elements with the "data-p-id" attribute were found.');
-            }
-        });
-    }
-
-    // Call the function to create the download chapter button when the page loads
-    window.addEventListener('load', createDownloadChapterButton);
 })();
+
 
 
 /* the Better Wattpad userscript (combination of the "Simplified Wattpad" userscript by @sharkcat and the "Wattpad Width Fixer and Suggestions Hider" userscript by @You with additional tweaks) */
@@ -175,7 +271,7 @@ var userPreferenceAdditionalPaddingPX = "0"; // Optional additional padding on t
 
     // Bulk CSS removal for distractions
     insertCSS(`
-        .youll-also-like,                                /* Removes the -You’ll also like- section */
+        .youll-also-like,                                /* Removes the -Youâ€™ll also like- section */
         .recommendations,                                /* Removes the recommended stories */
         .new-stats__comments,                            /* Removes the new comment stats */
         .story-extras,                                   /* Remove the empty space between the "Follow" button and the header's line. */
