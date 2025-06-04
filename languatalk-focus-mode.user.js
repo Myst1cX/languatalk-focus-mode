@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         LanguaTalk Focus Mode
-// @namespace    http://tampermonkey.net/
+// @namespace    https://greasyfork.org/
 // @version      1.5
 // @description  True fullscreen focus mode for LanguaTalk podcast player's transcript view.
 // @author       Myst1cX
