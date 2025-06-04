@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.5
 // @description  True fullscreen focus mode for LanguaTalk podcast player's transcript view.
-// @author       You
+// @author       Myst1cX
 // @match        *://*.languatalk.com/*
 // @grant        none
 // @homepageURL  https://github.com/Myst1cX/languatalk-focus-mode
